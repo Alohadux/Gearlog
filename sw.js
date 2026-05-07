@@ -3,7 +3,7 @@ const ASSETS = [
   './', 
   './index.html', 
   './manifest.json', 
-  './91330.jpg' // Allfiles/gearlog/91330.jpg
+  './91330.jpg' // Allfiles/gearlog/91330.jpeg
 ];
 
 
