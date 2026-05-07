@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#f5a623">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GearLog">
+<title>GearLog</title>
+<link rel="manifest" href="manifest.json">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e0f11;
+    --surface: #16181c;
+    --surface2: #1e2026;
+    --border: #2a2d35;
+    --accent: #f5a623;
+    --accent2: #e8453c;
+    --green: #3dd68c;
+    --blue: #5b9cf6;
+    --text: #e8eaed;
+    --muted: #6b7280;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+    --display: 'Bebas Neue', sans-serif;
+    --nav-h: 64px;
+    --header-h: 56px;
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    height: 100%;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+  }
+
+  /* HEADER */
+  header {
+    background: var(--surface);
+    border-bottom: 2px solid var(--accent);
+    height: var(--header-h);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    font-family: var(--display);
+    font-size: 1.7rem;
+    letter-spacing: 3px;
+    color: var(--accent);
+  }
+  .logo span { color: var(--text); }
+
+  /* MAIN SCROLL AREA */
+  .main {
+    position: fixed;
+    top: var(--header-h);
+    bottom: calc(var(--nav-h) + var(--safe-bottom));
+    left: 0; right: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 16px;
+  }
+
+  /* BOTTOM NAV */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: calc(var(--nav-h) + var(--safe-bottom));
+    padding-bottom: var(--safe-bottom);
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    display: flex;
+    z-index: 100;
+  }
+
+  .nav-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    cursor: pointer;
+    color: var(--muted);
+    border: none;
+    background: transparent;
+    padding: 8px 0;
+    transition: color 0.15s;
+    font-family: var(--sans);
+  }
+  .nav-btn.active { color: var(--accent); }
+  .nav-btn .nav-icon { font-size: 1.3rem; }
+  .nav-btn .nav-label { font-size: 0.6rem; font-family: var(--mono); letter-spacing: 1px; text-transform: uppercase; }
+
+  /* PAGES */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* PAGE TITLE */
+  .page-title {
+    font-family: var(--display);
+    font-size: 1.8rem;
+    letter-spacing: 2px;
+    margin-bottom: 2px;
+  }
+  .page-subtitle {
+    font-size: 0.72rem;
+    color: var(--muted);
+    font-family: var(--mono);
+    margin-bottom: 16px;
+  }
+
+  /* VEHICLE SELECTOR */
+  .vehicle-bar {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .vb-left { flex: 1; min-width: 0; }
+  .vb-name { font-family: var(--display); font-size: 1.2rem; letter-spacing: 1px; }
+  .vb-detail { font-size: 0.68rem; font-family: var(--mono); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .vb-mileage { font-family: var(--display); font-size: 1.4rem; color: var(--accent); white-space: nowrap; }
+  .vb-mi-label { font-size: 0.58rem; font-family: var(--mono); color: var(--muted); text-align: right; letter-spacing: 1px; text-transform: uppercase; }
+
+  /* VEHICLE SELECT DROPDOWN */
+  .veh-select-wrap { margin-bottom: 12px; }
+  .veh-select-wrap select {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-family: var(--sans);
+    font-size: 0.9rem;
+    outline: none;
+  }
+
+  /* STATS */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    position: relative;
+    overflow: hidden;
+  }
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+  .stat-card.orange::before { background: var(--accent); }
+  .stat-card.red::before { background: var(--accent2); }
+  .stat-card.green::before { background: var(--green); }
+  .stat-card.blue::before { background: var(--blue); }
+  .stat-label { font-size: 0.6rem; font-family: var(--mono); color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px; }
+  .stat-value { font-family: var(--display); font-size: 1.6rem; letter-spacing: 1px; line-height: 1; }
+  .stat-card.orange .stat-value { color: var(--accent); }
+  .stat-card.red .stat-value { color: var(--accent2); }
+  .stat-card.green .stat-value { color: var(--green); }
+  .stat-card.blue .stat-value { color: var(--blue); }
+  .stat-sub { font-size: 0.68rem; color: var(--muted); margin-top: 3px; }
+
+  /* SECTION HEADER */
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    margin-top: 20px;
+  }
+  .section-title {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* LOG CARDS (mobile-friendly) */
+  .log-cards { display: flex; flex-direction: column; gap: 10px; }
+
+  .log-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    border-left: 3px solid var(--border);
+  }
+  .log-card.oil { border-left-color: var(--accent); }
+  .log-card.parts { border-left-color: var(--blue); }
+  .log-card.tires { border-left-color: var(--green); }
+  .log-card.repair { border-left-color: var(--accent2); }
+  .log-card.inspect { border-left-color: #888; }
+  .log-card.other { border-left-color: #b388ff; }
+
+  .log-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+  .log-card-desc { font-weight: 600; font-size: 0.9rem; flex: 1; }
+  .log-card-meta { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .log-card-date { font-size: 0.7rem; font-family: var(--mono); color: var(--muted); }
+  .log-card-cost { font-size: 0.78rem; font-family: var(--mono); color: var(--green); }
+  .log-card-miles { font-size: 0.7rem; font-family: var(--mono); color: var(--muted); }
+  .log-card-parts { font-size: 0.75rem; color: #aaa; margin-top: 4px; }
+  .log-card-notes { font-size: 0.75rem; color: var(--muted); margin-top: 4px; font-style: italic; }
+
+  /* BADGE */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 7px;
+    border-radius: 20px;
+    font-size: 0.62rem;
+    font-family: var(--mono);
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+  }
+  .badge-oil { background: rgba(245,166,35,0.15); color: var(--accent); }
+  .badge-parts { background: rgba(91,156,246,0.15); color: var(--blue); }
+  .badge-tires { background: rgba(61,214,140,0.15); color: var(--green); }
+  .badge-repair { background: rgba(232,69,60,0.15); color: var(--accent2); }
+  .badge-inspect { background: rgba(180,180,180,0.1); color: #aaa; }
+  .badge-other { background: rgba(150,100,250,0.15); color: #b388ff; }
+
+  /* ALERT CARDS */
+  .alert-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    border-left: 4px solid var(--accent2);
+    margin-bottom: 10px;
+  }
+  .alert-card.watch { border-left-color: #ffc832; }
+  .alert-card.upcoming { border-left-color: var(--blue); }
+  .alert-card-title { font-weight: 600; font-size: 0.9rem; margin-bottom: 4px; }
+  .alert-card-meta { font-size: 0.72rem; color: var(--muted); font-family: var(--mono); }
+  .alert-card-note { margin-top: 8px; font-size: 0.78rem; color: #c0c0c0; line-height: 1.5; }
+
+  /* BUTTONS */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    font-family: var(--sans);
+    transition: all 0.15s;
+  }
+  .btn-primary { background: var(--accent); color: #0e0f11; }
+  .btn-primary:active { background: #f9b940; }
+  .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+  .btn-full { width: 100%; }
+  .btn-danger { background: transparent; color: var(--accent2); border: 1px solid rgba(232,69,60,0.3); padding: 6px 12px; font-size: 0.75rem; border-radius: 6px; }
+  .btn-sm { padding: 6px 12px; font-size: 0.78rem; }
+
+  /* FAB */
+  .fab {
+    position: fixed;
+    bottom: calc(var(--nav-h) + var(--safe-bottom) + 16px);
+    right: 16px;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #0e0f11;
+    font-size: 1.5rem;
+    font-weight: bold;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(245,166,35,0.4);
+    z-index: 90;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.15s;
+  }
+  .fab:active { transform: scale(0.95); }
+
+  /* MODAL (bottom sheet on mobile) */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 200;
+    align-items: flex-end;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border-radius: 20px 20px 0 0;
+    border-top: 1px solid var(--border);
+    width: 100%;
+    max-height: 92vh;
+    overflow-y: auto;
+    padding: 20px 20px calc(20px + var(--safe-bottom));
+    animation: sheetUp 0.25s ease;
+  }
+
+  @keyframes sheetUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+
+  .modal-handle {
+    width: 40px; height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin: 0 auto 16px;
+  }
+
+  .modal-title {
+    font-family: var(--display);
+    font-size: 1.5rem;
+    letter-spacing: 2px;
+    margin-bottom: 18px;
+    color: var(--accent);
+  }
+
+  /* FORM */
+  .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  label.form-label {
+    font-size: 0.65rem;
+    font-family: var(--mono);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  input, select, textarea {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 11px 12px;
+    border-radius: 8px;
+    font-family: var(--sans);
+    font-size: 1rem;
+    outline: none;
+    width: 100%;
+    -webkit-appearance: none;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+  textarea { resize: none; min-height: 80px; }
+
+  /* EMPTY STATE */
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--muted);
+  }
+  .es-icon { font-size: 2.5rem; margin-bottom: 10px; }
+  .es-title { font-family: var(--display); font-size: 1.3rem; letter-spacing: 2px; color: #555; margin-bottom: 6px; }
+  .es-sub { font-size: 0.8rem; }
+
+  /* COST BARS */
+  .cost-bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .cost-bar-label { font-size: 0.72rem; font-family: var(--mono); color: var(--muted); width: 65px; flex-shrink: 0; }
+  .cost-bar-track { flex: 1; height: 8px; background: var(--surface2); border-radius: 4px; overflow: hidden; }
+  .cost-bar-fill { height: 100%; border-radius: 4px; background: var(--accent); transition: width 0.4s ease; }
+  .cost-bar-val { font-size: 0.72rem; font-family: var(--mono); color: var(--text); width: 50px; text-align: right; flex-shrink: 0; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 10px; }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">GEAR<span>LOG</span></div>
+  <div>
+    <select id="vehicleSelect" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-size:0.8rem;font-family:var(--sans);outline:none;max-width:140px" onchange="switchVehicle()">
+      <option value="">No vehicle</option>
+    </select>
+  </div>
+</header>
+
+<div class="main">
+
+  <!-- DASHBOARD -->
+  <div class="page active" id="page-dashboard">
+    <div id="no-vehicle-msg" class="empty-state">
+      <div class="es-icon">🚗</div>
+      <div class="es-title">NO VEHICLE</div>
+      <div class="es-sub" style="margin-bottom:16px">Add your first vehicle to get started</div>
+      <button class="btn btn-primary" onclick="openModal('modal-vehicle')">+ Add Vehicle</button>
+    </div>
+    <div id="dashboard-content" style="display:none">
+      <div class="vehicle-bar" id="vehicle-banner">
+        <div class="vb-left">
+          <div class="vb-name" id="banner-name">—</div>
+          <div class="vb-detail" id="banner-detail">—</div>
+        </div>
+        <div>
+          <div class="vb-mi-label">Mileage</div>
+          <div class="vb-mileage" id="banner-mileage">—</div>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card orange"><div class="stat-label">Entries</div><div class="stat-value" id="stat-entries">0</div><div class="stat-sub">log records</div></div>
+        <div class="stat-card green"><div class="stat-label">Total Spent</div><div class="stat-value" id="stat-cost">$0</div><div class="stat-sub">all time</div></div>
+        <div class="stat-card red"><div class="stat-label">Watching</div><div class="stat-value" id="stat-watch">0</div><div class="stat-sub">concerns</div></div>
+        <div class="stat-card blue"><div class="stat-label">Upcoming</div><div class="stat-value" id="stat-upcoming">0</div><div class="stat-sub">scheduled</div></div>
+      </div>
+
+      <div class="section-header"><span class="section-title">// recent activity</span></div>
+      <div class="log-cards" id="recent-cards"></div>
+    </div>
+  </div>
+
+  <!-- LOG -->
+  <div class="page" id="page-log">
+    <div class="page-title">SERVICE LOG</div>
+    <div class="page-subtitle">// complete history</div>
+    <div class="log-cards" id="full-log-cards"></div>
+  </div>
+
+  <!-- WATCH + UPCOMING -->
+  <div class="page" id="page-alerts">
+    <div class="page-title">ALERTS</div>
+    <div class="page-subtitle">// watch list & upcoming</div>
+
+    <div class="section-header">
+      <span class="section-title">// watch list</span>
+      <button class="btn btn-ghost btn-sm" onclick="openModal('modal-watch')">+ Add</button>
+    </div>
+    <div id="watch-cards"></div>
+
+    <div class="section-header">
+      <span class="section-title">// upcoming service</span>
+      <button class="btn btn-ghost btn-sm" onclick="openModal('modal-upcoming')">+ Add</button>
+    </div>
+    <div id="upcoming-cards"></div>
+  </div>
+
+  <!-- COSTS -->
+  <div class="page" id="page-costs">
+    <div class="page-title">COSTS</div>
+    <div class="page-subtitle">// spending breakdown</div>
+
+    <div class="stats-grid" style="margin-bottom:16px">
+      <div class="stat-card green"><div class="stat-label">Total</div><div class="stat-value" id="cost-total">$0</div></div>
+      <div class="stat-card orange"><div class="stat-label">Avg/Service</div><div class="stat-value" id="cost-avg">$0</div></div>
+    </div>
+
+    <div class="section-header"><span class="section-title">// by category</span></div>
+    <div class="card" id="cost-bars-wrap"><div id="cost-bars"></div></div>
+
+    <div class="section-header"><span class="section-title">// all charges</span></div>
+    <div class="log-cards" id="cost-log-cards"></div>
+  </div>
+
+  <!-- VEHICLES -->
+  <div class="page" id="page-vehicles">
+    <div class="page-title">VEHICLES</div>
+    <div class="page-subtitle">// your garage</div>
+    <button class="btn btn-primary btn-full" style="margin-bottom:16px" onclick="openModal('modal-vehicle')">+ Add Vehicle</button>
+    <div id="vehicle-cards"></div>
+  </div>
+
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <button class="nav-btn active" onclick="showPage('dashboard',this)"><span class="nav-icon">📊</span><span class="nav-label">Home</span></button>
+  <button class="nav-btn" onclick="showPage('log',this)"><span class="nav-icon">📋</span><span class="nav-label">Log</span></button>
+  <button class="nav-btn" onclick="showPage('alerts',this)"><span class="nav-icon">⚠️</span><span class="nav-label">Alerts</span></button>
+  <button class="nav-btn" onclick="showPage('costs',this)"><span class="nav-icon">💰</span><span class="nav-label">Costs</span></button>
+  <button class="nav-btn" onclick="showPage('vehicles',this)"><span class="nav-icon">🚗</span><span class="nav-label">Garage</span></button>
+</nav>
+
+<!-- FAB -->
+<button class="fab" onclick="openLogModal()" title="Add Log Entry">+</button>
+
+<!-- ===== MODALS ===== -->
+
+<!-- ADD VEHICLE -->
+<div class="modal-overlay" id="modal-vehicle" onclick="overlayClose(event,'modal-vehicle')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">ADD VEHICLE</div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Year</label><input type="number" id="v-year" placeholder="2020" inputmode="numeric"></div>
+      <div class="form-group"><label class="form-label">Make</label><input type="text" id="v-make" placeholder="Toyota"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Model</label><input type="text" id="v-model" placeholder="Camry"></div>
+      <div class="form-group"><label class="form-label">Trim</label><input type="text" id="v-trim" placeholder="SE 2.5L"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Color</label><input type="text" id="v-color" placeholder="Silver"></div>
+      <div class="form-group"><label class="form-label">Plate</label><input type="text" id="v-plate" placeholder="ABC-1234"></div>
+    </div>
+    <div class="form-group"><label class="form-label">VIN</label><input type="text" id="v-vin" placeholder="1HGBH41JXMN109186"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Current Mileage</label><input type="number" id="v-mileage" placeholder="45000" inputmode="numeric"></div>
+      <div class="form-group"><label class="form-label">Purchase Date</label><input type="date" id="v-purchase"></div>
+    </div>
+    <button class="btn btn-primary btn-full" onclick="saveVehicle()">Save Vehicle</button>
+    <button class="btn btn-ghost btn-full" style="margin-top:8px" onclick="closeModal('modal-vehicle')">Cancel</button>
+  </div>
+</div>
+
+<!-- ADD LOG -->
+<div class="modal-overlay" id="modal-log" onclick="overlayClose(event,'modal-log')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">ADD LOG ENTRY</div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Date</label><input type="date" id="l-date"></div>
+      <div class="form-group"><label class="form-label">Type</label>
+        <select id="l-type">
+          <option value="oil">Oil Change</option>
+          <option value="parts">Parts Replaced</option>
+          <option value="tires">Tires</option>
+          <option value="repair">Repair</option>
+          <option value="inspect">Inspection</option>
+          <option value="other">Other / Installed</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group"><label class="form-label">Description</label><input type="text" id="l-desc" placeholder="e.g. Oil & filter change, synthetic 5W-30"></div>
+    <div class="form-group"><label class="form-label">Parts Used</label><input type="text" id="l-parts" placeholder="e.g. Mobil 1 5W-30, OEM filter"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Mileage</label><input type="number" id="l-mileage" placeholder="45000" inputmode="numeric"></div>
+      <div class="form-group"><label class="form-label">Cost ($)</label><input type="number" id="l-cost" placeholder="0.00" step="0.01" inputmode="decimal"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Shop / DIY</label><input type="text" id="l-shop" placeholder="Jiffy Lube / DIY"></div>
+      <div class="form-group"><label class="form-label">Next Service Mi</label><input type="number" id="l-next-miles" placeholder="50000" inputmode="numeric"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Notes</label><textarea id="l-notes" placeholder="Observations, things noticed..."></textarea></div>
+    <button class="btn btn-primary btn-full" onclick="saveLogEntry()">Save Entry</button>
+    <button class="btn btn-ghost btn-full" style="margin-top:8px" onclick="closeModal('modal-log')">Cancel</button>
+  </div>
+</div>
+
+<!-- WATCH -->
+<div class="modal-overlay" id="modal-watch" onclick="overlayClose(event,'modal-watch')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">WATCH ITEM</div>
+    <div class="form-group"><label class="form-label">Concern / Observation</label><input type="text" id="w-title" placeholder="e.g. Slight vibration at 65mph"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Priority</label>
+        <select id="w-priority">
+          <option value="low">Low</option>
+          <option value="medium" selected>Medium</option>
+          <option value="high">High</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Noticed at (mi)</label><input type="number" id="w-mileage" placeholder="45000" inputmode="numeric"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Notes / Suspicion</label><textarea id="w-notes" placeholder="What are you seeing or hearing?"></textarea></div>
+    <button class="btn btn-primary btn-full" onclick="saveWatchItem()">Save</button>
+    <button class="btn btn-ghost btn-full" style="margin-top:8px" onclick="closeModal('modal-watch')">Cancel</button>
+  </div>
+</div>
+
+<!-- UPCOMING -->
+<div class="modal-overlay" id="modal-upcoming" onclick="overlayClose(event,'modal-upcoming')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">UPCOMING SERVICE</div>
+    <div class="form-group"><label class="form-label">Service / Repair</label><input type="text" id="u-title" placeholder="e.g. Replace front brake pads"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Due Date</label><input type="date" id="u-date"></div>
+      <div class="form-group"><label class="form-label">Due Mileage</label><input type="number" id="u-mileage" placeholder="48000" inputmode="numeric"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Est. Cost ($)</label><input type="number" id="u-cost" placeholder="0.00" step="0.01" inputmode="decimal"></div>
+      <div class="form-group"><label class="form-label">Priority</label>
+        <select id="u-priority">
+          <option value="low">Low</option>
+          <option value="medium" selected>Medium</option>
+          <option value="high">High</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group"><label class="form-label">Notes</label><textarea id="u-notes" placeholder="Details about this service..."></textarea></div>
+    <button class="btn btn-primary btn-full" onclick="saveUpcomingItem()">Save</button>
+    <button class="btn btn-ghost btn-full" style="margin-top:8px" onclick="closeModal('modal-upcoming')">Cancel</button>
+  </div>
+</div>
+
+<script>
+// ===== STATE =====
+let state = JSON.parse(localStorage.getItem('gearlog_v2') || 'null') || {
+  vehicles: [], activeVehicleId: null, logs: [], watchItems: [], upcomingItems: []
+};
+function save() { localStorage.setItem('gearlog_v2', JSON.stringify(state)); }
+
+// ===== NAV =====
+function showPage(name, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  if (el) el.classList.add('active');
+  renderPage(name);
+}
+function renderPage(n) {
+  if (n === 'dashboard') renderDashboard();
+  else if (n === 'log') renderFullLog();
+  else if (n === 'alerts') renderAlerts();
+  else if (n === 'costs') renderCosts();
+  else if (n === 'vehicles') renderVehicles();
+}
+function currentPage() {
+  const a = document.querySelector('.page.active');
+  return a ? a.id.replace('page-','') : 'dashboard';
+}
+
+// ===== VEHICLES =====
+function buildVehicleSelect() {
+  const sel = document.getElementById('vehicleSelect');
+  if (state.vehicles.length === 0) { sel.innerHTML = '<option value="">No vehicle</option>'; return; }
+  sel.innerHTML = '<option value="">Select…</option>' +
+    state.vehicles.map(v => `<option value="${v.id}" ${v.id===state.activeVehicleId?'selected':''}>${v.year} ${v.make} ${v.model}</option>`).join('');
+}
+function switchVehicle() {
+  state.activeVehicleId = document.getElementById('vehicleSelect').value || null;
+  save(); renderPage(currentPage());
+}
+function saveVehicle() {
+  const year = document.getElementById('v-year').value.trim();
+  const make = document.getElementById('v-make').value.trim();
+  const model = document.getElementById('v-model').value.trim();
+  if (!year || !make || !model) { alert('Year, Make, and Model required.'); return; }
+  const v = {
+    id: Date.now().toString(), year, make, model,
+    trim: document.getElementById('v-trim').value.trim(),
+    color: document.getElementById('v-color').value.trim(),
+    plate: document.getElementById('v-plate').value.trim(),
+    vin: document.getElementById('v-vin').value.trim(),
+    mileage: parseInt(document.getElementById('v-mileage').value) || 0,
+    purchaseDate: document.getElementById('v-purchase').value
+  };
+  state.vehicles.push(v);
+  state.activeVehicleId = v.id;
+  save(); buildVehicleSelect(); closeModal('modal-vehicle'); renderDashboard();
+}
+
+// ===== LOG =====
+function openLogModal() {
+  ['l-parts','l-shop','l-notes','l-next-miles'].forEach(id => document.getElementById(id).value='');
+  document.getElementById('l-date').value = today();
+  document.getElementById('l-type').value = 'oil';
+  document.getElementById('l-desc').value = '';
+  const v = activeVehicle();
+  document.getElementById('l-mileage').value = v ? v.mileage : '';
+  document.getElementById('l-cost').value = '';
+  openModal('modal-log');
+}
+function saveLogEntry() {
+  if (!state.activeVehicleId) { alert('Add a vehicle first.'); return; }
+  const desc = document.getElementById('l-desc').value.trim();
+  if (!desc) { alert('Description required.'); return; }
+  const mileage = parseInt(document.getElementById('l-mileage').value) || 0;
+  const entry = {
+    id: Date.now().toString(), vehicleId: state.activeVehicleId,
+    date: document.getElementById('l-date').value,
+    type: document.getElementById('l-type').value, description: desc,
+    parts: document.getElementById('l-parts').value.trim(),
+    mileage, cost: parseFloat(document.getElementById('l-cost').value) || 0,
+    shop: document.getElementById('l-shop').value.trim(),
+    nextMiles: parseInt(document.getElementById('l-next-miles').value) || 0,
+    notes: document.getElementById('l-notes').value.trim()
+  };
+  state.logs.unshift(entry);
+  const v = activeVehicle();
+  if (v && mileage > v.mileage) v.mileage = mileage;
+  save(); closeModal('modal-log'); renderPage(currentPage());
+}
+
+// ===== WATCH =====
+function saveWatchItem() {
+  if (!state.activeVehicleId) { alert('Add a vehicle first.'); return; }
+  const title = document.getElementById('w-title').value.trim();
+  if (!title) { alert('Description required.'); return; }
+  state.watchItems.unshift({
+    id: Date.now().toString(), vehicleId: state.activeVehicleId, title,
+    priority: document.getElementById('w-priority').value,
+    mileage: parseInt(document.getElementById('w-mileage').value) || 0,
+    notes: document.getElementById('w-notes').value.trim(),
+    date: today()
+  });
+  save(); closeModal('modal-watch'); renderPage(currentPage());
+}
+
+// ===== UPCOMING =====
+function saveUpcomingItem() {
+  if (!state.activeVehicleId) { alert('Add a vehicle first.'); return; }
+  const title = document.getElementById('u-title').value.trim();
+  if (!title) { alert('Description required.'); return; }
+  state.upcomingItems.unshift({
+    id: Date.now().toString(), vehicleId: state.activeVehicleId, title,
+    dueDate: document.getElementById('u-date').value,
+    dueMileage: parseInt(document.getElementById('u-mileage').value) || 0,
+    estCost: parseFloat(document.getElementById('u-cost').value) || 0,
+    priority: document.getElementById('u-priority').value,
+    notes: document.getElementById('u-notes').value.trim()
+  });
+  save(); closeModal('modal-upcoming'); renderPage(currentPage());
+}
+
+// ===== DELETE =====
+function deleteLog(id) { if(confirm('Delete?')) { state.logs=state.logs.filter(l=>l.id!==id); save(); renderPage(currentPage()); } }
+function deleteWatch(id) { if(confirm('Remove?')) { state.watchItems=state.watchItems.filter(w=>w.id!==id); save(); renderPage(currentPage()); } }
+function deleteUpcoming(id) { if(confirm('Remove?')) { state.upcomingItems=state.upcomingItems.filter(u=>u.id!==id); save(); renderPage(currentPage()); } }
+
+// ===== RENDER =====
+function activeVehicle() { return state.vehicles.find(v=>v.id===state.activeVehicleId)||null; }
+function vehicleLogs() { return state.logs.filter(l=>l.vehicleId===state.activeVehicleId); }
+
+function typeBadge(t) {
+  const m = {oil:['badge-oil','OIL'],parts:['badge-parts','PARTS'],tires:['badge-tires','TIRES'],repair:['badge-repair','REPAIR'],inspect:['badge-inspect','INSPECT'],other:['badge-other','OTHER']};
+  const [c,l] = m[t]||['badge-other',t.toUpperCase()];
+  return `<span class="badge ${c}">${l}</span>`;
+}
+function pColor(p) { return p==='high'?'var(--accent2)':p==='medium'?'#ffc832':'var(--blue)'; }
+function fDate(d) { if(!d) return '—'; return new Date(d+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
+function fCost(c) { return c ? '$'+c.toFixed(2) : '—'; }
+function today() { return new Date().toISOString().split('T')[0]; }
+
+function renderDashboard() {
+  const v = activeVehicle();
+  const noV = document.getElementById('no-vehicle-msg');
+  const dc = document.getElementById('dashboard-content');
+  if (!v) { noV.style.display='block'; dc.style.display='none'; return; }
+  noV.style.display='none'; dc.style.display='block';
+
+  document.getElementById('banner-name').textContent = `${v.year} ${v.make} ${v.model}`;
+  document.getElementById('banner-detail').textContent = [v.trim,v.color,v.plate].filter(Boolean).join(' · ') || '—';
+  document.getElementById('banner-mileage').textContent = v.mileage.toLocaleString()+' mi';
+
+  const logs = vehicleLogs();
+  const total = logs.reduce((s,l)=>s+l.cost,0);
+  const wCount = state.watchItems.filter(w=>w.vehicleId===state.activeVehicleId).length;
+  const uCount = state.upcomingItems.filter(u=>u.vehicleId===state.activeVehicleId).length;
+  document.getElementById('stat-entries').textContent = logs.length;
+  document.getElementById('stat-cost').textContent = '$'+total.toFixed(0);
+  document.getElementById('stat-watch').textContent = wCount;
+  document.getElementById('stat-upcoming').textContent = uCount;
+
+  const el = document.getElementById('recent-cards');
+  const recent = logs.slice(0,5);
+  el.innerHTML = recent.length===0 ? emptyState('📭','NO RECORDS','Tap + to add your first entry') : recent.map(logCard).join('');
+}
+
+function logCard(l, showDelete=true) {
+  return `<div class="log-card ${l.type}">
+    <div class="log-card-top">
+      <div>${typeBadge(l.type)} <span class="log-card-desc">${l.description}</span></div>
+      ${showDelete ? `<button class="btn btn-danger" onclick="deleteLog('${l.id}')">✕</button>` : ''}
+    </div>
+    <div class="log-card-meta">
+      <span class="log-card-date">${fDate(l.date)}</span>
+      ${l.mileage ? `<span class="log-card-miles">${l.mileage.toLocaleString()} mi</span>` : ''}
+      ${l.cost ? `<span class="log-card-cost">$${l.cost.toFixed(2)}</span>` : ''}
+      ${l.shop ? `<span class="log-card-date">@ ${l.shop}</span>` : ''}
+    </div>
+    ${l.parts ? `<div class="log-card-parts">🔧 ${l.parts}</div>` : ''}
+    ${l.notes ? `<div class="log-card-notes">${l.notes}</div>` : ''}
+  </div>`;
+}
+
+function renderFullLog() {
+  const logs = vehicleLogs();
+  document.getElementById('full-log-cards').innerHTML = logs.length===0 ? emptyState('📭','NO RECORDS','Tap + to add an entry') : logs.map(l=>logCard(l,true)).join('');
+}
+
+function renderAlerts() {
+  const watches = state.watchItems.filter(w=>w.vehicleId===state.activeVehicleId);
+  const upcoming = state.upcomingItems.filter(u=>u.vehicleId===state.activeVehicleId);
+
+  document.getElementById('watch-cards').innerHTML = watches.length===0
+    ? emptyState('👁️','NOTHING WATCHING','','small')
+    : watches.map(w=>`<div class="alert-card watch">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div class="alert-card-title">${w.title}</div>
+          <button class="btn btn-danger" onclick="deleteWatch('${w.id}')">✕</button>
+        </div>
+        <div class="alert-card-meta">Priority: <span style="color:${pColor(w.priority)}">${w.priority.toUpperCase()}</span>${w.mileage?' · '+w.mileage.toLocaleString()+' mi':''} · ${fDate(w.date)}</div>
+        ${w.notes?`<div class="alert-card-note">${w.notes}</div>`:''}
+      </div>`).join('');
+
+  document.getElementById('upcoming-cards').innerHTML = upcoming.length===0
+    ? emptyState('🔔','NOTHING SCHEDULED','','small')
+    : upcoming.map(u=>`<div class="alert-card upcoming">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div class="alert-card-title">${u.title}</div>
+          <button class="btn btn-danger" onclick="deleteUpcoming('${u.id}')">✕</button>
+        </div>
+        <div class="alert-card-meta">${u.dueDate?'Due: '+fDate(u.dueDate)+' · ':''}${u.dueMileage?u.dueMileage.toLocaleString()+' mi · ':''}Priority: <span style="color:${pColor(u.priority)}">${u.priority.toUpperCase()}</span>${u.estCost?' · Est. $'+u.estCost.toFixed(0):''}</div>
+        ${u.notes?`<div class="alert-card-note">${u.notes}</div>`:''}
+      </div>`).join('');
+}
+
+function renderCosts() {
+  const logs = vehicleLogs().filter(l=>l.cost>0);
+  const total = logs.reduce((s,l)=>s+l.cost,0);
+  const avg = logs.length ? total/logs.length : 0;
+  document.getElementById('cost-total').textContent = '$'+total.toFixed(0);
+  document.getElementById('cost-avg').textContent = '$'+avg.toFixed(0);
+
+  const cats = {oil:0,parts:0,tires:0,repair:0,inspect:0,other:0};
+  const catNames = {oil:'Oil',parts:'Parts',tires:'Tires',repair:'Repair',inspect:'Inspect',other:'Other'};
+  logs.forEach(l=>{ cats[l.type]=(cats[l.type]||0)+l.cost; });
+  const maxC = Math.max(...Object.values(cats),1);
+  const filled = Object.entries(cats).filter(([,v])=>v>0);
+  document.getElementById('cost-bars').innerHTML = filled.length===0
+    ? '<div style="color:var(--muted);font-size:0.82rem;padding:8px 0">No cost data yet.</div>'
+    : filled.map(([k,v])=>`<div class="cost-bar-row"><div class="cost-bar-label">${catNames[k]}</div><div class="cost-bar-track"><div class="cost-bar-fill" style="width:${(v/maxC*100).toFixed(1)}%"></div></div><div class="cost-bar-val">$${v.toFixed(0)}</div></div>`).join('');
+
+  document.getElementById('cost-log-cards').innerHTML = logs.length===0
+    ? emptyState('💰','NO CHARGES','')
+    : logs.map(l=>`<div class="log-card ${l.type}">
+        <div class="log-card-top"><div>${typeBadge(l.type)} <span class="log-card-desc">${l.description}</span></div><span class="log-card-cost" style="font-size:1rem">$${l.cost.toFixed(2)}</span></div>
+        <div class="log-card-meta"><span class="log-card-date">${fDate(l.date)}</span>${l.mileage?`<span class="log-card-miles">${l.mileage.toLocaleString()} mi</span>`:''}</div>
+      </div>`).join('');
+}
+
+function renderVehicles() {
+  const el = document.getElementById('vehicle-cards');
+  el.innerHTML = state.vehicles.length===0
+    ? emptyState('🚗','NO VEHICLES','Add your first vehicle above')
+    : state.vehicles.map(v=>`<div class="card" style="${v.id===state.activeVehicleId?'border-color:var(--accent)':''}">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div>
+            <div style="font-family:var(--display);font-size:1.2rem;letter-spacing:1px">${v.year} ${v.make} ${v.model}</div>
+            <div style="font-size:0.72rem;font-family:var(--mono);color:var(--muted);margin-top:4px">${[v.trim,v.color,v.plate].filter(Boolean).join(' · ')||'—'}</div>
+            ${v.vin?`<div style="font-size:0.68rem;font-family:var(--mono);color:var(--muted);margin-top:2px">VIN: ${v.vin}</div>`:''}
+            <div style="font-family:var(--display);font-size:1.3rem;color:var(--accent);margin-top:8px">${v.mileage.toLocaleString()} mi</div>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="setActive('${v.id}')">${v.id===state.activeVehicleId?'✓ Active':'Set Active'}</button>
+        </div>
+      </div>`).join('');
+}
+
+function setActive(id) {
+  state.activeVehicleId = id;
+  save(); buildVehicleSelect(); renderVehicles();
+}
+
+function emptyState(icon,title,sub,size='normal') {
+  return `<div class="empty-state" style="${size==='small'?'padding:20px':''}">${size!=='small'?`<div class="es-icon">${icon}</div>`:''}
+    <div class="es-title" style="${size==='small'?'font-size:0.9rem;color:var(--muted)':''}">${title}</div>
+    ${sub?`<div class="es-sub">${sub}</div>`:''}
+  </div>`;
+}
+
+// ===== MODAL =====
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function overlayClose(e, id) { if(e.target.classList.contains('modal-overlay')) closeModal(id); }
+
+// ===== SERVICE WORKER =====
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(()=>{});
+}
+
+// ===== INIT =====
+buildVehicleSelect();
+renderDashboard();
+</script>
+</body>
+</html>
