@@ -1,5 +1,11 @@
 const CACHE = 'gearlog-v1';
-const ASSETS = ['./', './index.html', './manifest.json'];
+const ASSETS = [
+  './', 
+  './index.html', 
+  './manifest.json', 
+  './91330.jpg' // Allfiles/Gearloglogo Jpeg
+];
+
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
