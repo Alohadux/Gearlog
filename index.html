@@ -494,6 +494,44 @@
     <div class="page-subtitle">// your garage</div>
     <button class="btn btn-primary btn-full" style="margin-bottom:16px" onclick="openModal('modal-vehicle')">+ Add Vehicle</button>
     <div id="vehicle-cards"></div>
+    
+<div class="card" style="margin-top:24px">
+  <div class="page-title">BACKUP & RESTORE</div>
+  <p style="font-size:0.8rem;color:var(--muted);margin:10px 0 16px">
+    Keep your complete vehicle history safe.
+  </p>
+
+  <button class="btn btn-primary btn-full"
+          onclick="backupGearLog()">
+    Backup My Garage
+  </button>
+
+  <button class="btn btn-ghost btn-full"
+          style="margin-top:10px"
+          onclick="document.getElementById('restore-file').click()">
+    Restore My Garage
+  </button>
+
+  <input type="file" id="restore-file"
+         accept=".json,application/json"
+         style="display:none"
+         onchange="restoreGearLog(this.files[0]);this.value=''">
+
+  <div style="margin-top:20px;font-size:0.8rem;line-height:1.7">
+    <strong>HOW TO BACK UP YOUR HISTORY</strong>
+    <p>1. Tap Backup My Garage.</p>
+    <p>2. Save the downloaded file somewhere safe,
+       such as Google Drive.</p>
+    <p>3. Install GearLog on your new phone.</p>
+    <p>4. Tap Restore My Garage and select your backup file.</p>
+    <p>5. Your saved vehicle history will be restored.</p>
+    <p style="color:var(--accent);margin-top:10px">
+      Tip: Make a new backup whenever you add important records.
+      Backups are not automatic.
+    </p>
+  </div>
+</div>
+
   </div>
 
 </div>
@@ -900,6 +938,258 @@ if ('serviceWorker' in navigator) {
 // ===== INIT =====
 buildVehicleSelect();
 renderDashboard();
+
+// ===== GEARLOG BACKUP & RESTORE =====
+
+function backupGearLog() {
+  const backup = {
+    app: 'GearLog',
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    data: state
+  };
+
+  const blob = new Blob(
+    [JSON.stringify(backup, null, 2)],
+    { type: 'application/json' }
+  );
+
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download =
+    'GearLog_Backup_' +
+    new Date().toISOString().slice(0, 10) +
+    '.json';
+
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+
+function restoreGearLog(file) {
+  if (!file) return;
+
+  // Limit backup size to 10 MB.
+  if (file.size > 10 * 1024 * 1024) {
+    alert('Backup file is too large.');
+    return;
+  }
+
+  const reader = new FileReader();
+
+  reader.onload = function(event) {
+    let backup;
+    let data;
+
+    try {
+      backup = JSON.parse(event.target.result);
+      data = backup.data;
+
+      const isObject = value =>
+        value !== null &&
+        typeof value === 'object' &&
+        !Array.isArray(value);
+
+      const validText = value =>
+        typeof value === 'string';
+
+      const validNumber = value =>
+        typeof value === 'number' &&
+        Number.isFinite(value) &&
+        value >= 0;
+
+      const validOptionalText = value =>
+        value === undefined || validText(value);
+
+      const validOptionalNumber = value =>
+        value === undefined || validNumber(value);
+
+      const validRecord = (item, fields) =>
+        isObject(item) &&
+        fields.every(key => validText(item[key]));
+
+      if (
+        !isObject(backup) ||
+        backup.app !== 'GearLog' ||
+        backup.version !== 1 ||
+        !isObject(data) ||
+        !Array.isArray(data.vehicles) ||
+        !Array.isArray(data.logs) ||
+        !Array.isArray(data.watchItems) ||
+        !Array.isArray(data.upcomingItems) ||
+        !(data.activeVehicleId === null ||
+          validText(data.activeVehicleId))
+      ) {
+        throw new Error('Invalid backup structure');
+      }
+
+      // Validate every vehicle.
+      for (const v of data.vehicles) {
+        if (
+          !validRecord(v, ['id', 'year', 'make', 'model']) ||
+          !validNumber(v.mileage) ||
+          !['trim', 'color', 'plate', 'vin',
+            'purchaseDate'].every(k => validOptionalText(v[k]))
+        ) {
+          throw new Error('Invalid vehicle record');
+        }
+      }
+
+      const vehicleIds = new Set(
+        data.vehicles.map(v => v.id)
+      );
+
+      if (vehicleIds.size !== data.vehicles.length) {
+        throw new Error('Duplicate vehicle IDs');
+      }
+
+      if (
+        data.activeVehicleId !== null &&
+        !vehicleIds.has(data.activeVehicleId)
+      ) {
+        throw new Error('Invalid active vehicle');
+      }
+
+      // Validate service history.
+      const logTypes = [
+        'oil', 'parts', 'tires',
+        'repair', 'inspect', 'other'
+      ];
+
+      for (const l of data.logs) {
+        if (
+          !validRecord(l, [
+            'id', 'vehicleId', 'date',
+            'type', 'description'
+          ]) ||
+          !vehicleIds.has(l.vehicleId) ||
+          !logTypes.includes(l.type) ||
+          !validNumber(l.mileage) ||
+          !validNumber(l.cost) ||
+          !validOptionalNumber(l.nextMiles) ||
+          !['parts', 'shop', 'notes'].every(
+            k => validOptionalText(l[k])
+          )
+        ) {
+          throw new Error('Invalid service record');
+        }
+      }
+
+      const priorities = ['low', 'medium', 'high'];
+
+      // Validate watch-list items.
+      for (const w of data.watchItems) {
+        if (
+          !validRecord(w, [
+            'id', 'vehicleId', 'title',
+            'priority', 'date'
+          ]) ||
+          !vehicleIds.has(w.vehicleId) ||
+          !priorities.includes(w.priority) ||
+          !validNumber(w.mileage) ||
+          !validOptionalText(w.notes)
+        ) {
+          throw new Error('Invalid watch item');
+        }
+      }
+
+      // Validate upcoming services.
+      for (const u of data.upcomingItems) {
+        if (
+          !validRecord(u, [
+            'id', 'vehicleId', 'title', 'priority'
+          ]) ||
+          !vehicleIds.has(u.vehicleId) ||
+          !priorities.includes(u.priority) ||
+          !validOptionalText(u.dueDate) ||
+          !validNumber(u.dueMileage) ||
+          !validNumber(u.estCost) ||
+          !validOptionalText(u.notes)
+        ) {
+          throw new Error('Invalid upcoming service');
+        }
+      }
+
+    } catch (error) {
+      alert(
+        'Restore stopped: the backup is invalid ' +
+        'or incompatible. Your existing records ' +
+        'have not been changed.'
+      );
+      return;
+    }
+
+    const approved = confirm(
+      'RESTORE GEARLOG BACKUP?\n\n' +
+      'Vehicles: ' + data.vehicles.length + '\n' +
+      'Service records: ' + data.logs.length + '\n' +
+      'Watch items: ' + data.watchItems.length + '\n' +
+      'Upcoming services: ' +
+      data.upcomingItems.length + '\n\n' +
+      'WARNING: This replaces your current garage.\n' +
+      'Back up your current records first.\n\n' +
+      'Continue?'
+    );
+
+    if (!approved) return;
+
+    // Preserve the previous data in case saving fails.
+    const previous = localStorage.getItem('gearlog_v2');
+
+    try {
+      localStorage.setItem(
+        'gearlog_v2',
+        JSON.stringify(data)
+      );
+
+      state = data;
+      buildVehicleSelect();
+      renderPage(currentPage());
+
+      alert('GearLog history restored successfully!');
+
+    } catch (error) {
+      try {
+        if (previous === null) {
+          localStorage.removeItem('gearlog_v2');
+        } else {
+          localStorage.setItem('gearlog_v2', previous);
+        }
+        state = previous
+          ? JSON.parse(previous)
+          : {
+              vehicles: [],
+              activeVehicleId: null,
+              logs: [],
+              watchItems: [],
+              upcomingItems: []
+            };
+        buildVehicleSelect();
+        renderPage(currentPage());
+      } catch (rollbackError) {
+        // Preserve the original error and avoid
+        // claiming that recovery succeeded.
+      }
+
+      alert(
+        'Restore could not finish. Check your ' +
+        'existing records before trying again.'
+      );
+    }
+  };
+
+  reader.onerror = function() {
+    alert('Could not read the selected backup file.');
+  };
+
+  reader.readAsText(file);
+}
+
+972
 </script>
 </body>
 </html>
